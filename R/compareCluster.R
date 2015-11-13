@@ -38,7 +38,7 @@
 ##' xx.formula.twogroups <- compareCluster(Entrez~group+othergroup, data=mydf, fun='groupGO')
 ##' summary(xx.formula.twogroups)
 compareCluster <- function(geneClusters, fun="enrichGO", data='', ...) {
-
+    fun_name <- fun
     fun <- eval(parse(text=fun))
     # Use formula interface for compareCluster
     if (typeof(geneClusters) == 'language') {
@@ -65,14 +65,27 @@ compareCluster <- function(geneClusters, fun="enrichGO", data='', ...) {
         stop("No enrichment found in any of gene cluster, please check your input...")
     }
     
-    clProf.df <- rename(clProf.df, c(.id="Cluster"))
+    clProf.df <- rename(clProf.df, c(.id="Cluster"))    
     clProf.df$Cluster = factor(clProf.df$Cluster, levels=clusters.levels)
 
+    if (is.data.frame(data) && grepl('+', grouping.formula)) {
+        groupVarName <- strsplit(grouping.formula, split="\\+") %>% unlist %>%
+            gsub("~", "", .) %>% gsub("^\\s*", "", .) %>% gsub("\\s*$", "", .)
+        groupVars <- sapply(as.character(clProf.df$Cluster), strsplit, split="\\.") %>% do.call(rbind, .)
+        for (i in seq_along(groupVarName)) {
+            clProf.df[, groupVarName[i]] <- groupVars[,i] 
+        }
+        i <- which(colnames(clProf.df) %in% groupVarName)
+        j <- (1:ncol(clProf.df))[-c(1, i)]
+        clProf.df <- clProf.df[, c(1, i, j)]
+    }
+    
     ##colnames(clProf.df)[1] <- "Cluster"
     new("compareClusterResult",
         compareClusterResult = clProf.df,
         geneClusters = geneClusters,
-        fun = fun
+        fun = fun_name,
+        .call = match.call(expand.dots=TRUE)
 	)
 }
 
@@ -89,6 +102,7 @@ compareCluster <- function(geneClusters, fun="enrichGO", data='', ...) {
 ##' @slot compareClusterResult cluster comparing result
 ##' @slot geneClusters a list of genes
 ##' @slot fun one of groupGO, enrichGO and enrichKEGG
+##' @slot .call function call
 ##' @exportClass compareClusterResult
 ##' @author Guangchuang Yu \url{http://ygc.name}
 ##' @exportClass compareClusterResult
@@ -97,9 +111,10 @@ compareCluster <- function(geneClusters, fun="enrichGO", data='', ...) {
 ##' @keywords classes
 setClass("compareClusterResult",
          representation = representation(
-         compareClusterResult = "data.frame",
-         geneClusters = "list",
-         fun = "function"
+             compareClusterResult = "data.frame",
+             geneClusters = "list",
+             fun = "character",
+             .call = "call"
          )
          )
 
@@ -164,9 +179,16 @@ setMethod("plot", signature(x="compareClusterResult"),
                    title=""
                    ) {
               if (type == "dot" || type == "dotplot") {
-                  dotplot(x, colorBy, showCategory, by, includeAll, font.size, title)
+                  dotplot(x,
+                          colorBy      = colorBy,
+                          showCategory = showCategory,
+                          by           = by,
+                          includeAll   = includeAll,
+                          font.size    = font.size,
+                          title        = title
+                          )
               } else if (type == "bar" || type == "barplot") {
-                  barplot.enrichResult(x, colorBy, showCategory, by, includeAll, font.size, title)
+                  barplot.compareClusterResult(x, colorBy, showCategory, by, includeAll, font.size, title)
               } else {
                   stop("type should be one of 'dot' or 'bar'...")
               }              
@@ -179,6 +201,7 @@ setMethod("plot", signature(x="compareClusterResult"),
 ##' @rdname dotplot-methods
 ##' @aliases dotplot,compareClusterResult,ANY-method
 ##' @param object compareClusterResult object
+##' @param x x variable
 ##' @param colorBy one of pvalue or p.adjust
 ##' @param showCategory category numbers
 ##' @param by one of geneRatio, Percentage or count
@@ -189,6 +212,7 @@ setMethod("plot", signature(x="compareClusterResult"),
 ##' @exportMethod dotplot
 setMethod("dotplot", signature(object="compareClusterResult"),
           function(object,
+                   x = ~Cluster,
                    colorBy="p.adjust",
                    showCategory=5,
                    by="geneRatio",
@@ -196,7 +220,7 @@ setMethod("dotplot", signature(object="compareClusterResult"),
                    font.size=12,
                    title=""
                    ) {
-              dotplot.compareClusterResult(object, colorBy, showCategory, by, includeAll, font.size, title)
+              dotplot.compareClusterResult(object, x=x, colorBy, showCategory, by, includeAll, font.size, title)
           })
 
 
@@ -207,4 +231,30 @@ barplot.compareClusterResult <- function(height, colorBy="p.adjust", showCategor
     df <- fortify(height, showCategory=showCategory, by=by, includeAll=includeAll)
     plotting.clusterProfile(df, type="bar", colorBy=colorBy, by=by, title=title, font.size=font.size)
 }
+
+
+##' merge a list of enrichResult objects to compareClusterResult
+##'
+##'
+##' @title merge_result
+##' @param enrichResultList a list of enrichResult objects 
+##' @return a compareClusterResult instance
+##' @author Guangchuang Yu
+##' @importFrom plyr ldply
+##' @export
+merge_result <- function(enrichResultList) {
+    if ( !is(enrichResultList, "list")) {
+        stop("input should be a name list...")
+    }
+    if ( is.null(names(enrichResultList))) {
+        stop("input should be a name list...")
+    }
+    x <- lapply(enrichResultList, summary)
+    names(x) <- names(enrichResultList)
+    y <- ldply(x, "rbind")
+    y <- rename(y, c(.id="Cluster"))
+    y$Cluster = factor(y$Cluster, levels=names(enrichResultList))
+    new("compareClusterResult",
+        compareClusterResult = y)
     
+}

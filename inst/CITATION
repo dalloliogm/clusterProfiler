@@ -1,4 +1,4 @@
-citHeader("To cite clusterProfiler in publications use:")
+citHeader("Please cite G. Yu (2012) for using clusterProfiler. In addition, please cite G. Yu (2010) when using GOSemSim, G. Yu (2015) when using DOSE and G. Yu (2015) when using ChIPseeker.")
 
 citEntry(entry  ="ARTICLE",
          title  = "clusterProfiler: an R package for comparing biological themes among gene clusters",

@@ -156,7 +156,7 @@ download.KEGG <- function(species) {
 
     keggpath2extid.df <- data.frame(pathID=names(keggpathid2extid), extID=keggpathid2extid)
     
-    keggpathid2name<-keggList("pathway")
+    keggpathid2name <- keggList("pathway")
     names(keggpathid2name) %<>% gsub("path:map", "", .)
 
     res <- list(keggpath2extid = keggpath2extid.df,
@@ -325,6 +325,7 @@ getGOLevel <- function(ont, level) {
 ##'
 ##' @title plotting-clusterProfile
 ##' @param clProf.reshape.df data frame of compareCluster result
+##' @param x x variable
 ##' @param type one of dot and bar
 ##' @param by one of percentage and count
 ##' @param title graph title
@@ -333,6 +334,7 @@ getGOLevel <- function(ont, level) {
 ##' @return ggplot object
 ##' @importFrom ggplot2 ggplot
 ##' @importFrom ggplot2 aes
+##' @importFrom ggplot2 aes_
 ##' @importFrom ggplot2 aes_string
 ##' @importFrom ggplot2 geom_bar
 ##' @importFrom ggplot2 coord_flip
@@ -348,6 +350,7 @@ getGOLevel <- function(ont, level) {
 ##' @importFrom DOSE theme_dose
 ##' @author Guangchuang Yu \url{http://ygc.name}
 plotting.clusterProfile <- function(clProf.reshape.df,
+                                    x = ~Cluster,
                                     type = "dot",
                                     colorBy = "p.adjust",
                                     by = "geneRatio",
@@ -371,13 +374,13 @@ plotting.clusterProfile <- function(clProf.reshape.df,
     if (type == "dot") {
         if (by == "rowPercentage") {
             p <- ggplot(clProf.reshape.df,
-                        aes(x = Cluster, y = Description, size = Percentage))
+                        aes_(x = x, y = ~Description, size = ~Percentage))
         } else if (by == "count") {
             p <- ggplot(clProf.reshape.df,
-                        aes(x = Cluster, y = Description, size = Count))
+                        aes_(x = x, y = ~Description, size = ~Count))
         } else if (by == "geneRatio") {
             p <- ggplot(clProf.reshape.df,
-                        aes(x = Cluster, y = Description, size = GeneRatio))
+                        aes_(x = x, y = ~Description, size = ~GeneRatio))
         } else {
             ## nothing here
         }
@@ -401,6 +404,30 @@ plotting.clusterProfile <- function(clProf.reshape.df,
     ##                    vjust=vjust.axis.x))
     return(p)
 }
+
+get_go_ontology <- function(x) {
+    if (is(x, "compareClusterResult")) {
+        if (x@fun != "enrichGO") {
+            stop("simplify only work for GO...")
+        }
+        ont <- x@.call$ont
+        if (is.null(ont)) {
+            ## should be "MF", default value of enrichGO
+            ## it's safe to determine from the output
+            ont <- x@compareClusterResult$ID[1] %>% GOTERM[[.]] %>% Ontology
+        }
+    } else if (is(x, "enrichResult")) {
+        if (!x@ontology %in% c("BP", "MF", "CC"))
+            stop("ontology should be one of 'MF', 'BP', 'CC'...")
+
+        ont <- x@ontology
+    } else {
+        stop("x should be an instance of 'enrichResult' or 'compareClusterResult'...")
+    }
+
+    return(ont)
+}
+
 
 ##' building GO mapping files
 ##'

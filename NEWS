@@ -1,5 +1,35 @@
+CHANGES IN VERSION 2.5.2
+------------------------
+ o facet with compareCluster result <2015-11-03, Tue>
+   + see https://github.com/GuangchuangYu/clusterProfiler/issues/32
+ 
+CHANGES IN VERSION 2.5.1
+------------------------
+ o read.gmt function for parsing gmt file for enricher and GSEA <2015-10-28, Wed>
+ o gofilter to filt result at specific GO level <2015-10-23, Fri>
+ o simplify function <2015-10-21, Wed>
+   + see https://github.com/GuangchuangYu/clusterProfiler/issues/28
+
+CHANGES IN VERSION 2.5.0
+------------------------
+ o BioC 3.3 branch
+ 
+CHANGES IN VERSION 2.3.8
+------------------------
+ o dropGO function <2015-09-24, Thu>
+   + see https://github.com/GuangchuangYu/clusterProfiler/issues/26
+ o use_internal_data = TRUE in enrichKEGG example to speedup compilation of vignette and prevent error when online is not available <2015-09-23, Wed>
+ 
+CHANGES IN VERSION 2.3.7
+------------------------
+ o bug fixed in sorting pvalue of compareClusterResult. <2015-09-16, Wed>
+   For compareCluster(fun=groupGO), there is no pvalue, use Count for sorting
+ o use_internal_data= TRUE in enrichKEGG and gseKEGG demonstrated in vignette due to the issue
+   https://github.com/GuangchuangYu/clusterProfiler/issues/20 <2015-08-26, Wed>		   
+ 
 CHANGES IN VERSION 2.3.6
 ------------------------
+ o merge_result function <2015-07-15, Wed>
  o add citation of ChIPseeker <2015-07-09, Thu>
  o add 'Functional analysis of NGS data' section in vignette <2015-06-29, Mon>
  o update vignette <2015-06-24, Wed>
